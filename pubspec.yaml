@@ -1,0 +1,32 @@
+name: quran_ku_6a_si
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  provider: ^6.1.2
+
+  # HTTP Client handling API calls
+  http: ^1.2.2
+
+  # Cache management 
+  cached_network_image: ^3.4.1
+
+  # HTML rendering
+  flutter_html: ^3.0.0-beta.2
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
