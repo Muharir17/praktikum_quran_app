@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/providers.dart';
+import 'screens/screens.dart';
 
 void main() {
   runApp(const MyApp());
@@ -9,20 +12,24 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Quran Ku',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('Quran Ku'),
+    return ChangeNotifierProvider(
+      create: (context) => SurahProvider()..fetchSurahList(),
+      child: MaterialApp(
+        title: 'Quran App',
+        theme: ThemeData(
+          primarySwatch: Colors.green,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        body: Center(
-          child: Text('Quran App - Cooming Soon'),
-        ),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const ListSurahScreen(),
+          '/surah-detail': (context) {
+            final surahNumber =
+                ModalRoute.of(context)!.settings.arguments as int;
+            return DetailSurahScreen(surahNumber: surahNumber);
+          },
+        },
+        debugShowCheckedModeBanner: false,
       ),
     );
   }
