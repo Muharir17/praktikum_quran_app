@@ -10,9 +10,10 @@ class ListSurahScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Daftar Surah'),
+        title: Text('Daftar Surah', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25)),
         backgroundColor: Colors.green[800],
         foregroundColor: Colors.white,
+        centerTitle: true,
       ),
 
       body: Consumer<SurahProvider>(
@@ -77,8 +78,17 @@ class ListSurahScreen extends StatelessWidget {
                   ),
                   subtitle: Text(
                     '${surah.namaLatin} . ${surah.jumlahAyat} Ayat . ${surah.tempatTurun} . ${surah.arti}',
-                    style: TextStyle(fontSize: 16),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  trailing: Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      'surah-detail',
+                      arguments: surah.nomor,
+                    );
+                  },
                 ),
               );
             },
