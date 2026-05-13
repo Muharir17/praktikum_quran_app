@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
           '/surah-detail': (context) {
             final surahNumber =
                 ModalRoute.of(context)!.settings.arguments as int;
-            return DetailSurahScreen(surahNumber: surahNumber);
+            return Text('data');
           },
         },
         debugShowCheckedModeBanner: false,
