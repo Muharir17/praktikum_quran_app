@@ -1,27 +1,106 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_html/flutter_html.dart';
 import '../providers/providers.dart';
 
-class DetailSurahScreen extends StatelessWidget {
+class DetailSurahScreen extends StatefulWidget {
   final int surahNumber;
 
   const DetailSurahScreen({super.key, required this.surahNumber});
 
   @override
-  Widget build(BuildContext context) {
-    // Fetch the surah detail when the screen is built
+  State<DetailSurahScreen> createState() => _DetailSurahScreenState();
+}
+
+class _DetailSurahScreenState extends State<DetailSurahScreen> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _playingUrl;
+  bool _isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<SurahProvider>(context, listen: false)
-          .fetchSurahDetail(surahNumber);
+          .fetchSurahDetail(widget.surahNumber);
     });
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = state == PlayerState.playing;
+          if (state == PlayerState.completed) {
+            _playingUrl = null;
+          }
+        });
+      }
+    });
+  }
 
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playAudio(String url) async {
+    if (_playingUrl == url && _isPlaying) {
+      await _audioPlayer.pause();
+    } else if (_playingUrl == url && !_isPlaying) {
+      await _audioPlayer.resume();
+    } else {
+      setState(() => _playingUrl = url);
+      await _audioPlayer.play(UrlSource(url));
+    }
+  }
+
+  Future<void> _stopAudio() async {
+    await _audioPlayer.stop();
+    setState(() {
+      _playingUrl = null;
+      _isPlaying = false;
+    });
+  }
+
+  Widget _buildAudioButton(String? url, {bool isSurah = false}) {
+    if (url == null || url.isEmpty) return const SizedBox.shrink();
+    final isThisPlaying = _playingUrl == url && _isPlaying;
+    return Row(
+      mainAxisAlignment: isSurah ? MainAxisAlignment.start : MainAxisAlignment.end,
+      children: [
+        IconButton(
+          icon: Icon(
+            isThisPlaying ? Icons.pause_circle : Icons.play_circle_outline,
+            color: isSurah ? Colors.green : Colors.green[700],
+            size: isSurah ? 32 : 28,
+          ),
+          onPressed: () => _playAudio(url),
+        ),
+        if (_playingUrl == url)
+          IconButton(
+            icon: Icon(Icons.stop_circle_outlined, color: Colors.red[400], size: isSurah ? 32 : 28),
+            onPressed: _stopAudio,
+          ),
+        Text(
+          isSurah ? 'Dengarkan Surat' : 'Audio',
+          style: TextStyle(
+            color: isSurah ? Colors.green : Colors.grey,
+            fontWeight: isSurah ? FontWeight.w500 : FontWeight.normal,
+            fontSize: isSurah ? 14 : 12,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Consumer<SurahProvider>(
           builder: (context, provider, child) {
             if (provider.selectedSurah != null) {
-              return Text('${provider.selectedSurah!.nomor}. ${provider.selectedSurah!.nama ?? 'Tidak Diketahui'}');
+              return Text('${provider.selectedSurah!.nomor}. ${provider.selectedSurah!.nama}');
             }
             return const Text('Detail Surah');
           },
@@ -51,7 +130,7 @@ class DetailSurahScreen extends StatelessWidget {
                   Text(
                     provider.errorMessage,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.red,
                     ),
@@ -59,7 +138,7 @@ class DetailSurahScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      provider.fetchSurahDetail(surahNumber);
+                      provider.fetchSurahDetail(widget.surahNumber);
                     },
                     child: const Text('Coba Lagi'),
                   ),
@@ -101,7 +180,7 @@ class DetailSurahScreen extends StatelessWidget {
                                 child: Center(
                                   child: Text(
                                     surah.nomor.toString(),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.green,
                                     ),
@@ -114,14 +193,14 @@ class DetailSurahScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      surah.nama ?? 'Tidak Diketahui',
+                                      surah.nama,
                                       style: const TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     Text(
-                                      surah.namaLatin ?? 'Tidak Diketahui',
+                                      surah.namaLatin,
                                       style: TextStyle(
                                         fontSize: 16,
                                         color: Colors.grey,
@@ -137,32 +216,14 @@ class DetailSurahScreen extends StatelessWidget {
                             children: [
                               _buildInfoChip(surah.jumlahAyat.toString(), 'Ayat'),
                               const SizedBox(width: 8),
-                              _buildInfoChip(surah.tempatTurun ?? 'Tidak Diketahui', 'Turun'),
+                              _buildInfoChip(surah.tempatTurun, 'Turun'),
                               const SizedBox(width: 8),
-                              _buildInfoChip(surah.arti ?? 'Tidak Diketahui', 'Arti'),
+                              _buildInfoChip(surah.arti, 'Arti'),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Audio player for the entire surah
                           if (surah.audioFull.isNotEmpty)
-                            Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.play_circle_outline, color: Colors.green),
-                                  onPressed: () {
-                                    //TODO: Implement surah audio playback
-                                    print('Playing surah audio: ${surah.audioFull['01']}');
-                                  },
-                                ),
-                                const Text(
-                                  'Dengarkan Surat',
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            _buildAudioButton(surah.audioFull['01'], isSurah: true),
                           const SizedBox(height: 16),
                           ExpansionTile(
                             title: const Text(
@@ -175,7 +236,7 @@ class DetailSurahScreen extends StatelessWidget {
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
                                 child: Html(
-                                  data: surah.deskripsi ?? 'Tidak ada deskripsi',
+                                  data: surah.deskripsi,
                                   style: {
                                     "body": Style(
                                       fontSize: FontSize(14),
@@ -208,10 +269,7 @@ class DetailSurahScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
 
-                  // Display all ayat without collapse for easy reading
-                  ...surah.ayat.asMap().entries.map((entry) {
-                    int index = entry.key;
-                    final ayah = entry.value;
+                  ...surah.ayat.map((ayah) {
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       child: Padding(
@@ -219,7 +277,6 @@ class DetailSurahScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            // Header with ayah number
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -245,9 +302,8 @@ class DetailSurahScreen extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            // Arabic text
                             Text(
-                              ayah.teksArab ?? '',
+                              ayah.teksArab,
                               style: const TextStyle(
                                 fontSize: 24,
                                 height: 2,
@@ -255,9 +311,8 @@ class DetailSurahScreen extends StatelessWidget {
                               textAlign: TextAlign.right,
                             ),
                             const SizedBox(height: 12),
-                            // Latin transliteration
                             Text(
-                              ayah.teksLatin ?? '',
+                              ayah.teksLatin,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontStyle: FontStyle.italic,
@@ -265,37 +320,16 @@ class DetailSurahScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            // Translation
                             Text(
-                              ayah.teksIndonesia ?? '',
+                              ayah.teksIndonesia,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(height: 12),
-                            // Audio player
                             if (ayah.audio.isNotEmpty)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.play_circle_outline),
-                                    onPressed: () {
-                                      //TODO: Implement audio playback
-                                      // For now, we'll just print the audio URL
-                                      print('Playing audio: ${ayah.audio['01']}');
-                                    },
-                                  ),
-                                  const Text(
-                                    'Audio',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              _buildAudioButton(ayah.audio['01']),
                           ],
                         ),
                       ),
@@ -322,14 +356,14 @@ class DetailSurahScreen extends StatelessWidget {
         children: [
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
               color: Colors.green,
             ),
           ),
           Text(
             description,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 10,
               color: Colors.grey,
             ),

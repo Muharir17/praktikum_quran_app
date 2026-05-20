@@ -85,7 +85,7 @@ class ListSurahScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.pushNamed(
                       context,
-                      'surah-detail',
+                      '/surah-detail',
                       arguments: surah.nomor,
                     );
                   },
